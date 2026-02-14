@@ -3,21 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Крестики-нолики (локально + онлайн)</title>
+  <title>Крестики-нолики: коды комнат, чат, счёт</title>
 
   <style>
-    /* Themes */
     :root{
-      --bg:#ffffff; --fg:#111; --cell:#fff; --border:#222; --muted:#666;
-      --accent:#111;
+      --bg:#ffffff; --fg:#111; --cell:#fff; --border:#222; --muted:#666; --accent:#111;
+      --shadow: rgba(0,0,0,.08);
     }
     body.dark{
-      --bg:#0f1115; --fg:#e8e8ea; --cell:#1a1d24; --border:#444; --muted:#a0a0a6;
-      --accent:#e8e8ea;
+      --bg:#0f1115; --fg:#e8e8ea; --cell:#1a1d24; --border:#444; --muted:#a0a0a6; --accent:#e8e8ea;
+      --shadow: rgba(0,0,0,.35);
     }
     body.classic{
-      --bg:#071b10; --fg:#b9ffcf; --cell:#0b2a19; --border:#22c55e; --muted:#7dffad;
-      --accent:#22c55e;
+      --bg:#071b10; --fg:#b9ffcf; --cell:#0b2a19; --border:#22c55e; --muted:#7dffad; --accent:#22c55e;
+      --shadow: rgba(0,0,0,.25);
     }
 
     body{
@@ -26,100 +25,194 @@
       font-family:system-ui,Segoe UI,Arial;
       transition:.2s;
     }
-    .wrap{display:grid;gap:12px;justify-items:center;padding:18px}
-    #status{font-size:16px;text-align:center;color:var(--muted);max-width:520px}
-    .grid{display:grid;grid-template-columns:repeat(3,90px);gap:10px}
-    button.cell{
-      width:90px;height:90px;font-size:44px;cursor:pointer;
-      border:2px solid var(--border);border-radius:14px;
-      background:var(--cell);color:var(--fg);
-    }
-    .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
+    .wrap{width:min(920px, 96vw); display:grid; gap:12px; padding:16px}
+    .top{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:center}
+
     .ctrl, input.ctrl{
-      padding:8px 12px;border-radius:12px;
-      border:2px solid var(--border);background:var(--cell);color:var(--fg);
-      cursor:pointer;font:inherit;
+      padding:8px 12px; border-radius:12px;
+      border:2px solid var(--border);
+      background:var(--cell); color:var(--fg);
+      font:inherit;
+      box-shadow: 0 8px 20px var(--shadow);
     }
-    input.ctrl{cursor:text; min-width:220px}
+    .ctrl{cursor:pointer}
+    input.ctrl{cursor:text}
+    button.ctrl:active{transform: translateY(1px)}
+
     .pill{
-      padding:6px 10px;border:2px dashed var(--border);
-      border-radius:999px;color:var(--muted);font-size:13px
+      padding:6px 10px; border:2px dashed var(--border);
+      border-radius:999px; color:var(--muted); font-size:13px
     }
-    .onlineBox{display:none; gap:8px; flex-wrap:wrap; justify-content:center}
-    .onlineBox.show{display:flex}
-    a{color:var(--accent)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+
+    .main{display:grid; grid-template-columns: 1fr; gap:12px;}
+    @media (min-width: 820px){ .main{grid-template-columns: 420px 1fr; align-items:start} }
+
+    .boardCard{
+      display:grid; gap:10px; justify-items:center;
+      padding:14px; border:2px solid var(--border); border-radius:16px;
+      background:var(--cell); box-shadow: 0 12px 30px var(--shadow);
+    }
+    #status{font-size:16px; text-align:center; color:var(--muted)}
+    #score{font-size:14px; text-align:center; color:var(--muted)}
+    .grid{display:grid; grid-template-columns:repeat(3, 110px); gap:10px}
+    @media (max-width: 420px){ .grid{grid-template-columns:repeat(3, 92px)} }
+
+    button.cell{
+      width:110px; height:110px;
+      border-radius:16px;
+      border:2px solid var(--border);
+      background:var(--bg);
+      color:var(--fg);
+      font-size:54px;
+      cursor:pointer;
+      transition: transform .12s;
+      box-shadow: inset 0 0 0 999px rgba(255,255,255,0.0);
+    }
+    @media (max-width: 420px){ button.cell{width:92px; height:92px; font-size:46px} }
+    button.cell:active{transform: scale(.98)}
+
+    .mark{display:inline-block; animation: pop .14s ease-out; transform-origin:center;}
+    @keyframes pop{ from{transform: scale(.6); opacity:.2} to{transform: scale(1); opacity:1} }
+
+    .winGlow{ box-shadow: inset 0 0 0 999px rgba(34,197,94,.12); }
+    body.dark .winGlow{ box-shadow: inset 0 0 0 999px rgba(34,197,94,.10); }
+    body.classic .winGlow{ box-shadow: inset 0 0 0 999px rgba(185,255,207,.10); }
+
+    .sideCard{
+      padding:14px; border:2px solid var(--border); border-radius:16px;
+      background:var(--cell); box-shadow: 0 12px 30px var(--shadow);
+      display:grid; gap:10px;
+    }
+    .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+    .row.tight{gap:6px}
+
+    .chatLog{
+      height:260px; overflow:auto;
+      border:2px solid var(--border); border-radius:14px;
+      padding:10px;
+      background:var(--bg);
+      color:var(--fg);
+    }
+    .msg{margin:6px 0; line-height:1.25}
+    .msg small{color:var(--muted)}
+    .msg.system{color:var(--muted); font-style:italic}
+
+    .hint{color:var(--muted); font-size:13px}
+    #typing{min-height:18px}
   </style>
 </head>
 
 <body>
   <div class="wrap">
-    <div class="row">
-      <select id="mode" class="ctrl" title="Режим">
+    <div class="top">
+      <select id="mode" class="ctrl">
         <option value="ai">Против компьютера</option>
         <option value="pvp">На двоих (локально)</option>
-        <option value="online">Онлайн на двоих</option>
+        <option value="online">Онлайн (код комнаты)</option>
       </select>
 
-      <select id="level" class="ctrl" title="Сложность (для компьютера)">
+      <select id="level" class="ctrl">
         <option value="easy">Лёгкая</option>
         <option value="normal" selected>Нормальная</option>
         <option value="hard">Сложная</option>
       </select>
 
-      <select id="theme" class="ctrl" title="Тема">
+      <select id="theme" class="ctrl">
         <option value="light" selected>☀️ Светлая</option>
         <option value="dark">🌙 Тёмная</option>
         <option value="classic">🟩 Classic</option>
       </select>
 
+      <label class="pill">
+        <input id="sound" type="checkbox" checked />
+        Звуки
+      </label>
+
       <button id="reset" class="ctrl">Заново</button>
+      <button id="resetScore" class="ctrl">Сброс счёта</button>
     </div>
 
-    <div class="row onlineBox" id="onlineBox">
-      <span class="pill" id="onlineHint">Онлайн: открой через HTTPS (GitHub Pages)</span>
-      <button id="hostBtn" class="ctrl">Создать комнату</button>
-      <span class="pill" id="myId">ID: —</span>
-      <input id="joinId" class="ctrl" placeholder="Вставь ID комнаты друга" />
-      <button id="joinBtn" class="ctrl">Подключиться</button>
-    </div>
+    <div class="main">
+      <div class="boardCard">
+        <div id="status">Ход: X</div>
+        <div id="score">Счёт — X: 0 • O: 0 • Ничьи: 0</div>
+        <div class="grid" id="grid"></div>
+        <div class="hint">Онлайн: Игрок 1 «Создать комнату» → отправляет код. Игрок 2 вводит код → «Войти».</div>
+      </div>
 
-    <div id="status">Ход: X</div>
-    <div class="grid" id="grid"></div>
+      <div class="sideCard">
+        <div class="row">
+          <span class="pill">Онлайн</span>
+          <span id="onlineState" class="pill">Не подключено</span>
+          <span class="pill">В комнате: <b id="roomCount" class="mono">0/2</b></span>
+        </div>
 
-    <div class="row" style="max-width:520px; text-align:center; color:var(--muted); font-size:13px">
-      Онлайн использует PeerJS/WebRTC. Если “не коннектится” — почти всегда проблема в HTTPS/сети (NAT). 
+        <div class="row tight">
+          <button id="createRoom" class="ctrl">Создать комнату</button>
+          <span class="pill">Код: <b id="roomCode" class="mono">—</b></span>
+          <button id="copyCode" class="ctrl">Копировать</button>
+        </div>
+
+        <div class="row tight">
+          <input id="joinCode" class="ctrl mono" placeholder="Код (A9K3QZ)" maxlength="6" />
+          <button id="joinRoom" class="ctrl">Войти</button>
+          <button id="leaveRoom" class="ctrl">Выйти</button>
+        </div>
+
+        <div class="hint">⚠️ Онлайн требует интернет и https:// (GitHub Pages).</div>
+
+        <div class="row">
+          <span class="pill">Чат</span>
+        </div>
+
+        <div id="chatLog" class="chatLog"></div>
+        <div id="typing" class="hint"></div>
+
+        <div class="row tight">
+          <input id="chatInput" class="ctrl" placeholder="Напиши сообщение…" style="flex:1 1 auto; min-width:200px" />
+          <button id="sendChat" class="ctrl">Отправить</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- PeerJS (нужен интернет для онлайн-режима) -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
   <script>
-    // ====== UI refs ======
+    // UI
     const grid = document.getElementById('grid');
     const statusEl = document.getElementById('status');
-    const resetBtn = document.getElementById('reset');
-    const levelEl = document.getElementById('level');
+    const scoreEl = document.getElementById('score');
+
     const modeEl = document.getElementById('mode');
+    const levelEl = document.getElementById('level');
     const themeEl = document.getElementById('theme');
+    const soundEl = document.getElementById('sound');
 
-    const onlineBox = document.getElementById('onlineBox');
-    const hostBtn = document.getElementById('hostBtn');
-    const joinBtn = document.getElementById('joinBtn');
-    const joinIdEl = document.getElementById('joinId');
-    const myIdEl = document.getElementById('myId');
+    const resetBtn = document.getElementById('reset');
+    const resetScoreBtn = document.getElementById('resetScore');
 
-    // ====== Game state ======
+    const onlineStateEl = document.getElementById('onlineState');
+    const roomCountEl = document.getElementById('roomCount');
+    const createRoomBtn = document.getElementById('createRoom');
+    const roomCodeEl = document.getElementById('roomCode');
+    const copyCodeBtn = document.getElementById('copyCode');
+    const joinCodeEl = document.getElementById('joinCode');
+    const joinRoomBtn = document.getElementById('joinRoom');
+    const leaveRoomBtn = document.getElementById('leaveRoom');
+
+    const chatLogEl = document.getElementById('chatLog');
+    const typingEl = document.getElementById('typing');
+    const chatInputEl = document.getElementById('chatInput');
+    const sendChatBtn = document.getElementById('sendChat');
+
+    // Game state
     const X='X', O='O';
     let board = Array(9).fill('');
     let turn = X;
     let over = false;
-
-    // Online state
-    let peer = null;
-    let conn = null;
-    let onlineRole = null; // "host" or "guest"
-    let onlineReady = false;
+    let winLine = null;
 
     const wins = [
       [0,1,2],[3,4,5],[6,7,8],
@@ -127,103 +220,190 @@
       [0,4,8],[2,4,6]
     ];
 
-    function winner(b=board){
-      for(const [a,b2,c] of wins){
-        if(b[a] && b[a]===b[b2] && b[a]===b[c]) return b[a];
-      }
-      if(b.every(v=>v)) return 'draw';
-      return null;
+    // Score
+    let score = { x:0, o:0, d:0 };
+    function updateScore(){ scoreEl.textContent = `Счёт — X: ${score.x} • O: ${score.o} • Ничьи: ${score.d}`; }
+
+    // Sounds (WebAudio)
+    let audioCtx = null;
+    function beep(freq=440, dur=0.06, type='sine', gain=0.06){
+      if(!soundEl.checked) return;
+      try{
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = type; o.frequency.value = freq; g.gain.value = gain;
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + dur);
+      }catch(e){}
     }
-    function empties(b=board){
-      return b.map((v,i)=>v?null:i).filter(v=>v!==null);
+    // ✅ move sounds removed, win/lose added
+    const SND = {
+      moveX: ()=>{},
+      moveO: ()=>{},
+      win: () => {
+        beep(740,0.07,'sine',0.07);
+        setTimeout(()=>beep(980,0.08,'sine',0.07),70);
+        setTimeout(()=>beep(1170,0.09,'sine',0.07),160);
+      },
+      lose: () => {
+        beep(320,0.10,'sine',0.07);
+        setTimeout(()=>beep(220,0.12,'sine',0.07),110);
+      },
+      draw:  ()=>beep(240,0.08,'sine',0.06),
+      msg:   ()=>beep(620,0.03,'triangle',0.03)
+    };
+
+    // Chat
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function chatLine(text, who='system'){
+      const div = document.createElement('div');
+      div.className = 'msg ' + who;
+      const t = new Date();
+      const hh = String(t.getHours()).padStart(2,'0');
+      const mm = String(t.getMinutes()).padStart(2,'0');
+      if(who==='system'){
+        div.textContent = text;
+      }else{
+        div.innerHTML = `<small>[${hh}:${mm}]</small> <b>${who==='me'?'Я':'Он(а)'}</b>: ${escapeHtml(text)}`;
+      }
+      chatLogEl.appendChild(div);
+      chatLogEl.scrollTop = chatLogEl.scrollHeight;
     }
 
+    // Render
     function setStatus(t){ statusEl.textContent = t; }
 
     function render(){
       grid.innerHTML='';
       board.forEach((v,i)=>{
-        const btn=document.createElement('button');
-        btn.className='cell';
-        btn.textContent=v;
-        btn.onclick=()=>onClickCell(i);
+        const btn = document.createElement('button');
+        btn.className = 'cell';
+        if(winLine && winLine.includes(i)) btn.classList.add('winGlow');
+        btn.onclick = () => onCell(i);
+        if(v){
+          const span = document.createElement('span');
+          span.className = 'mark';
+          span.textContent = v;
+          btn.appendChild(span);
+        }
         grid.appendChild(btn);
       });
     }
 
-    function endCheck(){
-      const w = winner();
-      if(!w) return false;
-      over = true;
-      if(w==='draw') setStatus('Ничья 🤝');
-      else setStatus(`Победил ${w} 🎉`);
-      return true;
+    function empties(b=board){ const res=[]; for(let i=0;i<9;i++) if(!b[i]) res.push(i); return res; }
+
+    function winner(b=board){
+      for(const line of wins){
+        const [a,b2,c] = line;
+        if(b[a] && b[a]===b[b2] && b[a]===b[c]) return { w:b[a], line };
+      }
+      if(b.every(x=>x)) return { w:'draw', line:null };
+      return null;
     }
 
-    // ====== Local gameplay ======
-    function onClickCell(i){
+    function statusText(){
+      const mode = modeEl.value;
+      if(mode==='online'){
+        if(!online.ready) return 'Онлайн: не подключено';
+        return `Онлайн • Ты: ${online.myMark} • Ход: ${turn}`;
+      }
+      if(mode==='ai') return `Ты: X • Компьютер: O • Ход: ${turn}`;
+      return `На двоих • Ход: ${turn}`;
+    }
+
+    // ✅ finish: win/lose sound logic
+    function finish(w){
+      over = true; winLine = w.line;
+
+      if(w.w==='draw'){
+        score.d++; updateScore();
+        setStatus('Ничья 🤝');
+        SND.draw();
+        render();
+        return;
+      }
+
+      if(w.w===X) score.x++; else score.o++;
+      updateScore();
+      setStatus(`Победил ${w.w} 🎉`);
+
+      const mode = modeEl.value;
+      let myMark = null;
+      if(mode === 'ai') myMark = X;
+      else if(mode === 'online' && online?.myMark) myMark = online.myMark;
+
+      if(myMark){
+        (w.w === myMark ? SND.win : SND.lose)();
+      }else{
+        // локально на двоих: просто "победа"
+        SND.win();
+      }
+
+      render();
+    }
+
+    // ✅ applyMove: no click sounds
+    function applyMove(i, mark){
+      if(over || board[i]) return;
+      board[i] = mark;
+      turn = (turn===X)?O:X;
+      render();
+      setStatus(statusText());
+    }
+
+    function resetBoard(sendOnline=false){
+      board = Array(9).fill('');
+      turn = X; over = false; winLine = null;
+      setStatus(statusText()); render();
+      if(sendOnline) send({type:'resetBoard'});
+    }
+    function resetScore(sendOnline=false){
+      score = {x:0,o:0,d:0}; updateScore();
+      if(sendOnline) send({type:'score', score});
+    }
+
+    // Click cell
+    function onCell(i){
       if(over || board[i]) return;
 
       const mode = modeEl.value;
 
-      if(mode === 'online'){
-        if(!onlineReady || !conn) return;
-        // host играет X, guest играет O
-        const myMark = (onlineRole === 'host') ? X : O;
-        if(turn !== myMark) return;
-
-        applyMove(i, myMark, true);
-        conn.send({type:'move', i});
+      if(mode==='online'){
+        if(!online.ready) return;
+        if(turn !== online.myMark) return;
+        applyMove(i, online.myMark);
+        send({type:'move', i});
+        const w = winner(); if(w) finish(w);
         return;
       }
 
-      // локальные режимы
-      board[i]=turn;
-      render();
-      if(endCheck()) return;
+      applyMove(i, turn);
+      const w = winner(); if(w) return finish(w);
 
-      if(mode==='ai' && turn===X){
-        turn = O;
+      if(mode==='ai' && turn===O){
         setStatus('Ход компьютера…');
-        setTimeout(aiMove, 220);
-      } else {
-        turn = (turn===X)?O:X;
-        setStatus(`Ход: ${turn}`);
+        setTimeout(aiMove, 180);
+      }else{
+        setStatus(statusText());
       }
     }
 
-    function resetGame(sendOnline=false){
-      board = Array(9).fill('');
-      turn = X;
-      over = false;
-      setStatus(modeEl.value==='online'
-        ? (onlineReady ? onlineStatusText() : 'Онлайн: не подключено')
-        : 'Ход: X'
-      );
-      render();
-
-      if(sendOnline && conn && onlineReady){
-        conn.send({type:'reset'});
-      }
-    }
-
-    // ====== AI ======
-    function randomMove(){
-      const e=empties();
-      return e[Math.floor(Math.random()*e.length)];
-    }
+    // AI
     function winMove(p){
       for(const i of empties()){
-        const b=board.slice(); b[i]=p;
-        if(winner(b)===p) return i;
+        const b = board.slice(); b[i]=p;
+        const res = winner(b);
+        if(res && res.w===p) return i;
       }
       return null;
     }
+    function randomMove(){ const e=empties(); return e[Math.floor(Math.random()*e.length)]; }
     function minimax(b,p){
-      const w = winner(b);
-      if(w===O) return {score: 1};
-      if(w===X) return {score:-1};
-      if(w==='draw') return {score:0};
+      const res = winner(b);
+      if(res?.w===O) return {score:1};
+      if(res?.w===X) return {score:-1};
+      if(res?.w==='draw') return {score:0};
 
       let best = {score: p===O ? -Infinity : Infinity};
       for(const i of empties(b)){
@@ -236,122 +416,248 @@
     }
     function aiMove(){
       if(over || modeEl.value!=='ai' || turn!==O) return;
-
       let m=null;
       const lvl=levelEl.value;
+      if(lvl==='easy') m=randomMove();
+      else if(lvl==='normal') m=winMove(O) ?? winMove(X) ?? (!board[4]?4:null) ?? randomMove();
+      else m=minimax(board.slice(), O).i ?? randomMove();
 
-      if(lvl==='easy'){
-        m=randomMove();
-      }else if(lvl==='normal'){
-        m = winMove(O) ?? winMove(X) ?? (!board[4]?4:null) ?? randomMove();
-      }else{
-        m = minimax(board.slice(), O).i ?? randomMove();
+      applyMove(m, O);
+      const w = winner(); if(w) finish(w);
+      setStatus(statusText());
+    }
+
+    // ===== Online with room codes + typing indicator + online counter
+    const online = {
+      peer:null, conn:null, ready:false,
+      role:null, myMark:null,
+      code:null,
+      count:0, otherPresent:false
+    };
+
+    function setOnlineState(t){ onlineStateEl.textContent = t; }
+    function setRoomCount(n){ online.count = n; roomCountEl.textContent = `${n}/2`; }
+
+    function makeCode(){
+      const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+      let s=""; for(let i=0;i<6;i++) s += chars[Math.floor(Math.random()*chars.length)];
+      return s;
+    }
+
+    function send(payload){
+      if(online.conn && online.conn.open) online.conn.send(payload);
+    }
+
+    function showTyping(on){ typingEl.textContent = on ? 'Соперник печатает…' : ''; }
+    let remoteTypingTimer = null;
+    function remoteTyping(on){
+      showTyping(on);
+      if(remoteTypingTimer) clearTimeout(remoteTypingTimer);
+      if(on) remoteTypingTimer = setTimeout(()=>showTyping(false), 2000);
+    }
+
+    function cleanupPeer(hard=true){
+      try{ if(online.conn) online.conn.close(); }catch(e){}
+      online.conn=null; online.ready=false; online.role=null; online.myMark=null;
+      online.otherPresent=false;
+      showTyping(false);
+      setRoomCount(0);
+      setOnlineState('Не подключено');
+      if(hard){
+        try{ if(online.peer) online.peer.destroy(); }catch(e){}
+        online.peer=null;
       }
-
-      board[m]=O;
-      render();
-      if(endCheck()) return;
-      turn=X;
-      setStatus('Ход: X');
     }
 
-    // ====== Online (PeerJS) ======
-    function onlineStatusText(){
-      if(!onlineReady) return 'Онлайн: не подключено';
-      const myMark = (onlineRole === 'host') ? X : O;
-      return `Онлайн • Ты: ${myMark} • Ход: ${turn}`;
-    }
+    function ensurePeerWithId(id){
+      if(online.peer && online.peer.id===id) return;
+      cleanupPeer(false);
 
-    function applyMove(i, mark, fromMe){
-      if(over || board[i]) return;
-      board[i] = mark;
-      render();
-      if(endCheck()) return;
-      turn = (turn===X)?O:X;
-      setStatus(onlineStatusText());
-    }
+      online.peer = new Peer(id);
 
-    function ensurePeer(){
-      if(peer) return;
-
-      peer = new Peer(); // PeerJS Cloud by default
-      peer.on('open', id => {
-        myIdEl.textContent = 'ID: ' + id;
-        setStatus(modeEl.value==='online' ? 'Онлайн: выбери "Создать комнату" или "Подключиться"' : statusEl.textContent);
+      online.peer.on('open', pid => {
+        setOnlineState('Готов (ID: '+pid+')');
       });
 
-      peer.on('connection', c => {
-        // Host accepts incoming
-        conn = c;
-        onlineRole = 'host';
+      // host accepts
+      online.peer.on('connection', c => {
+        online.conn = c;
+        online.role = 'host';
+        online.myMark = X;
+        online.ready = true;
         wireConn();
-        onlineReady = true;
-        setStatus('Онлайн: игрок подключился ✅ Ты: X');
-        resetGame(false);
+        setOnlineState('Подключён ✅ (ты X)');
+        chatLine('Игрок подключился ✅', 'system');
+
+        setRoomCount(2);
+        online.otherPresent = true;
+
+        send({type:'hello'});
+        send({type:'score', score});
+        resetBoard(true);
       });
 
-      peer.on('error', err => {
-        setStatus('Онлайн ошибка: ' + (err?.type || err?.message || err));
+      online.peer.on('error', err => {
+        setOnlineState('Ошибка: ' + (err?.type || err?.message || err));
+        chatLine('Онлайн ошибка: ' + (err?.type || err?.message || err), 'system');
+        if(String(err?.type).includes('unavailable')) chatLine('Код занят. Нажми «Создать комнату» ещё раз.', 'system');
       });
     }
 
     function wireConn(){
-      if(!conn) return;
+      const c = online.conn;
+      if(!c) return;
 
-      conn.on('open', () => {
-        onlineReady = true;
-        setStatus(onlineStatusText());
+      c.on('open', () => {
+        online.ready=true;
+        setOnlineState('Подключено ✅');
+        setRoomCount(2);
+        send({type:'hello'});
+        setStatus(statusText());
       });
 
-      conn.on('data', msg => {
-        if(!msg || typeof msg !== 'object') return;
+      c.on('data', msg => {
+        if(!msg || typeof msg!=='object') return;
+
+        if(msg.type==='hello'){
+          online.otherPresent = true;
+          setRoomCount(2);
+        }
 
         if(msg.type==='move'){
-          // opposite mark
-          const otherMark = (onlineRole === 'host') ? O : X;
-          applyMove(msg.i, otherMark, false);
+          const otherMark = (online.myMark===X) ? O : X;
+          if(!over && !board[msg.i]){
+            applyMove(msg.i, otherMark);
+            const w=winner(); if(w) finish(w);
+          }
         }
-        if(msg.type==='reset'){
-          resetGame(false);
-          setStatus(onlineStatusText());
+
+        if(msg.type==='resetBoard'){
+          resetBoard(false);
+          chatLine('Доска сброшена', 'system');
+        }
+
+        if(msg.type==='score' && msg.score){
+          score = msg.score; updateScore();
+        }
+
+        if(msg.type==='chat' && typeof msg.text==='string'){
+          SND.msg();
+          chatLine(msg.text, 'other');
+        }
+
+        if(msg.type==='typing'){
+          remoteTyping(!!msg.on);
         }
       });
 
-      conn.on('close', () => {
-        onlineReady = false;
-        conn = null;
-        setStatus('Онлайн: соединение закрыто ❌');
+      c.on('close', () => {
+        chatLine('Соединение закрыто ❌', 'system');
+        setOnlineState('Отключено');
+        online.ready=false;
+        online.conn=null;
+        online.otherPresent=false;
+        showTyping(false);
+        setRoomCount(1);
+        setStatus(statusText());
       });
     }
 
-    hostBtn.onclick = () => {
-      modeEl.value = 'online';
-      modeChanged();
-      ensurePeer();
-      onlineRole = 'host';
-      onlineReady = false;
-      setStatus('Онлайн: ждём подключение… (скинь другу свой ID)');
+    // Buttons
+    function goOnlineMode(){ modeEl.value='online'; modeChanged(); }
+
+    createRoomBtn.onclick = () => {
+      goOnlineMode();
+      const code = makeCode();
+      online.code=code;
+      roomCodeEl.textContent=code;
+
+      setOnlineState('Создаю комнату…');
+      chatLine('Комната создаётся…', 'system');
+
+      ensurePeerWithId(code);
+      online.role='host';
+      online.myMark=X;
+      online.ready=false;
+      setRoomCount(1);
+      setStatus('Онлайн: ждём игрока… (ты X)');
     };
 
-    joinBtn.onclick = () => {
-      modeEl.value = 'online';
-      modeChanged();
-      ensurePeer();
+    joinRoomBtn.onclick = () => {
+      goOnlineMode();
+      const code = (joinCodeEl.value||'').trim().toUpperCase();
+      if(code.length!==6){ chatLine('Введи код из 6 символов.', 'system'); return; }
 
-      const roomId = (joinIdEl.value || '').trim();
-      if(!roomId){ setStatus('Вставь ID комнаты друга.'); return; }
+      online.code=code;
+      roomCodeEl.textContent=code;
 
-      onlineRole = 'guest';
-      setStatus('Онлайн: подключаюсь…');
-      conn = peer.connect(roomId);
+      ensurePeerWithId(makeCode()); // guest random id
+      setOnlineState('Подключаюсь…');
+      chatLine('Подключаюсь к комнате '+code+'…', 'system');
+
+      online.role='guest';
+      online.myMark=O;
+
+      setRoomCount(1);
+
+      online.conn = online.peer.connect(code);
       wireConn();
-      // guest играет O, ждём когда host начнёт (по умолчанию X ходит)
-      onlineReady = true;
-      resetGame(false);
-      setStatus('Онлайн: подключено ✅ Ты: O');
+
+      resetBoard(false);
+      setStatus('Онлайн: подключение… (ты O)');
     };
 
-    // ====== Theme + mode handlers ======
+    copyCodeBtn.onclick = async () => {
+      const code = roomCodeEl.textContent;
+      if(!code || code==='—') return;
+      try{ await navigator.clipboard.writeText(code); chatLine('Код скопирован ✅', 'system'); SND.msg(); }
+      catch(e){ chatLine('Не смог скопировать. Скопируй вручную: '+code, 'system'); }
+    };
+
+    leaveRoomBtn.onclick = () => {
+      cleanupPeer(false);
+      chatLine('Вышел из комнаты.', 'system');
+      setStatus(statusText());
+    };
+
+    // Typing indicator (send to opponent)
+    let typingOn = false;
+    let typingOffTimer = null;
+
+    function setTyping(on){
+      if(!online.ready) return;
+      if(on === typingOn) return;
+      typingOn = on;
+      send({type:'typing', on});
+    }
+
+    chatInputEl.addEventListener('input', () => {
+      if(modeEl.value !== 'online' || !online.ready) return;
+
+      setTyping(true);
+
+      if(typingOffTimer) clearTimeout(typingOffTimer);
+      typingOffTimer = setTimeout(() => setTyping(false), 700);
+    });
+
+    chatInputEl.addEventListener('blur', () => {
+      if(modeEl.value !== 'online' || !online.ready) return;
+      setTyping(false);
+    });
+
+    function sendChat(){
+      const t = (chatInputEl.value||'').trim();
+      if(!t) return;
+      chatInputEl.value='';
+      setTyping(false);
+
+      chatLine(t,'me'); SND.msg();
+      send({type:'chat', text:t});
+    }
+    sendChatBtn.onclick = sendChat;
+    chatInputEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendChat(); });
+
+    // Theme + Mode
     function applyTheme(){
       document.body.classList.remove('dark','classic');
       const t = themeEl.value;
@@ -361,35 +667,25 @@
 
     function modeChanged(){
       const mode = modeEl.value;
-
-      onlineBox.classList.toggle('show', mode==='online');
-      levelEl.disabled = (mode!=='ai');
-
-      if(mode==='online'){
-        ensurePeer();
-        setStatus(onlineReady ? onlineStatusText() : 'Онлайн: не подключено (создай или подключись)');
-      } else {
-        // отключаем онлайновую логику от игры (соединение можно оставить как есть)
-        onlineReady = false;
-        onlineRole = null;
-        setStatus('Ход: X');
-      }
-
-      resetGame(false);
+      levelEl.disabled = (mode !== 'ai');
+      if(mode !== 'online') showTyping(false);
+      setStatus(statusText());
+      resetBoard(false);
     }
 
-    resetBtn.onclick = () => {
-      const send = (modeEl.value==='online');
-      resetGame(send);
-    };
-
-    themeEl.onchange = applyTheme;
     modeEl.onchange = modeChanged;
+    themeEl.onchange = applyTheme;
 
-    // init
+    resetBtn.onclick = () => resetBoard(modeEl.value==='online');
+    resetScoreBtn.onclick = () => resetScore(modeEl.value==='online');
+
+    // Init
     applyTheme();
+    updateScore();
     render();
-    setStatus('Ход: X');
+    setStatus(statusText());
+    setRoomCount(0);
+    chatLine('Готово. Для онлайна нажми «Создать комнату» и отправь код.', 'system');
   </script>
 </body>
-</html>
+  </html>
